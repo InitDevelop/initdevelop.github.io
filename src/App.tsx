@@ -4,20 +4,11 @@ import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+    <div className="padding-outer">
+      <header className="padding-upper-100">
+        <h1 className='font-large'>Moon Seok Khang</h1>
+        <p>Hi! I'm an <span className='blue'>undergraduate student</span> in <span className='blue'>Seoul National University</span> studying <span className='blue'>Electrical and Comptuer Engineering</span></p>
+        <p>Hi! I'm an undergraduate student in Seoul National University studying Electrical and Comptuer Engineering.</p>
       </header>
     </div>
   );
