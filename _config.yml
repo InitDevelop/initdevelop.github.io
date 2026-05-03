@@ -34,10 +34,10 @@ theme: minima
 plugins:
   - jekyll-feed
 
-title: My Portfolio Site
-description: A personal blog and portfolio created with Jekyll.
+title: Moon Seok Khang
+description: Personal Blog - Moon Seok Khang
 lang: en-US
-github_username: your-github-id
+github_username: initdevelop
 
 # Exclude from processing.
 # The following items will not be processed, by default.
