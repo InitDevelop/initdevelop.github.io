@@ -106,8 +106,8 @@ p { margin: 0; }
 
 h2.section-title {
     font-size: 1.8rem;
-    margin-bottom: 30px;
-    margin-top: 50px;
+    margin-bottom: 15px;
+    margin-top: 10px;
     border-bottom: 3px solid var(--border-dark);
     padding-bottom: 10px;
     display: inline-block;
@@ -286,7 +286,7 @@ pre {
     border-radius: 8px;
     overflow-x: auto;
     line-height: 1.5;
-    margin: 2em 0;
+    margin: 0.8em 0;
     border: 1px solid #333;
 }
 
