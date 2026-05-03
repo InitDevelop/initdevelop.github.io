@@ -1,0 +1,196 @@
+---
+layout: post
+title:  "RIVRSE - A RISC-V RTL Simulation Environment"
+date:   2025-12-07 09:00:00 +0900
+category: project
+mathjax: true
+image: /assets/images/rivrse/rivrse_stageview.png
+---
+
+
+# RIVRSE
+## Introduction
+
+<img src="/assets/images/rivrse/rivrse_stageview.png" title="RIVRSE"/>
+
+*A RISC-V Verilog RTL Simulation Environment.*
+<div class="gap"></div>
+
+**RIVRSE** is a simulation environment for testing Verilog RTL (Register-Transfer Level) implementations of CPUs that can run instructions written according to the 32-bit RISC-V instruction set architecture (the RV32 ISA).
+
+<div class="gap"></div>
+
+This was a **learning project** that I initiated during my mandatory military service. In my free time, I studied the fundamentals of computer architecture and developed a strong interest in processor design. Drawing on the Verilog knowledge I acquired at SNU prior to my enlistment, I set out to develop a 32-bit CPU implementation based on the RISC-V architecture.
+
+## Project Structure
+
+{% highlight html %}
+rivrse/
+├── rv32_assembler/
+│   ├── main.cpp
+│   ├── ...
+├── rv32_cpu/
+│   ├── ...
+├── rv32_pipelined/
+│   ├── ...
+├── rv32_stageview/
+│   ├── ...
+├── vapor/
+│   ├── ...
+├── memory_dump.txt
+├── run_cpu.sh
+├── run_pipelined.sh
+├── source.s
+├── waveform.vcd
+└── README.md
+{% endhighlight %}
+
+This project consists of two CPU implementations (`rv32_cpu` and `rv32_pipelined`), an assembler (`rv32_assembler`) and two tools for analyzing the functionality of the CPU (`rv32_stageview` and `vapor`).
+
+<div class="gap"></div>
+
+* **RV32 CPU** -- Single Cycle CPU Implementation <br>
+RV32 CPU is a single-cycle CPU implementation of the RISC-V architecture, using Verilog. This CPU fetches, decodes, executes one instruction every cycle and is a simpler implementation compared to the RV32 Pipelined CPU.
+
+* **RV32 Pipelined** -- Pipelined CPU Implementation <br>
+RV32 Pipelined is a 5-stage pipelined CPU implementation of the RISC-V architecture, using Verilog. This CPU is pipelined into 5 stages: fetch(**F**), decode(**D**), execute(**E**), memory(**M**) and write-back(**W**). This implementation also includes a single-level, 2-way set associative cache with LRU replacement policy.
+
+* **RV32 Assembler** -- RISC-V to Binary Assembler <br>
+RV32 Assembler is a simple assembler that translates basic RISC-V assembly code to 32-bit binary. The assembler is made using C++, and only supports basic RISC-V instructions (no pseudoinstructions, no extensions). 
+
+* **RV32 StageView** -- Pipeline Stage Viewer (The *"Gantt Chart"* Viewer) <br>
+StageView is a C++ CUI program for visualizing the pipeline execution process of the RV32 Pipeline. StageView visualizes the stage (F, D, E, M or W) each instruction is at for each clock cycle, in a *"Gantt Chart"* style.
+
+* **VAPOR** -- **V**erification of **A**rchitectural-state **P**rogram **O**rder **R**etirement <br>
+This is a very simple debugging tool that checks whether the RV32 Pipeline executed the instructions properly according to the program order. VAPOR checks the updates of architectural states (memory, registers) and makes sure that the order of updates matches that of the RV32 CPU. (RV32 CPU is regarded as a golden model and the RV32 Pipeline is checked against it)
+
+
+## About the Pipelined CPU
+<img src="/assets/images/rivrse/architecture.png" title="RIVRSE Pipelined Architecture"/>
+
+As of December 2025:
+- Supports a subset of the 32-bit RISC-V ISA: `add`, `sub`, `xor`, `or`, `and`, `sll`, `srl`, `sra`, `slt`, `sltu`, `addi`, `xori`, `ori`, `andi`, `slli`, `srli`, `srai`, `slti`, `sltiu`, `lw`, `sw`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`, `jal`, `jalr`, `lui`, `auipc`.
+- 5-stage pipelined microarchitecture with branch prediction using BTB (Branch Target Buffer) and BHT (Branch History Table)
+- 32x 32-bit register file
+- Supports pipeline interlocking behaviors for branch/cache misses
+- Supports 4 KiB main memory space
+- Includes a single-level (L1) cache
+  - 2-way set-associative single-level cache
+  - LRU (least recently used) replacement policy
+  - Write-back and write-allocate policy
+  - Access to main-memory on cache miss
+
+
+
+# Development Timeline
+## Phase 1 - Assembler + Single-Cycle CPU
+**May 2025**
+
+<div class="gap"></div>
+
+The development was broken into several phases; the first phase involving the development of the RV32 assembler and the RV32 CPU (single-cycle implementation).
+
+<div class="gap"></div>
+
+While a compiler is a program that translates code written in a programming language other than assembly to assembly code, the role of an assembler is to translate assembly code to binary machine code. The **RV32 Assembler** in this project only considers a subset of the base integer RISC-V instruction set: `add`, `sub`, `xor`, `or`, `and`, `sll`, `srl`, `sra`, `slt`, `sltu`, `addi`, `xori`, `ori`, `andi`, `slli`, `srli`, `srai`, `slti`, `sltiu`, `lw`, `sw`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`, `jal`, `jalr`, `lui`, `auipc`. The assembler was built with C++ and can be run on the terminal.
+
+
+<div class="gap"></div>
+
+**RV32 CPU**, which is the single-cycle implementation, runs all the five stages (fetch, decode, execute, memory, write-back) for one instruction, per cycle. The instruction cache is 0.5 KiB. Since each RV32I instruction is 32 bits (4 bytes), the I-cache can store a maximum of 128 instructions. The data cache is 4 KiB and in this single-cycle CPU, I assumed this D-cache is the main memory. I-cahce and D-cache are separated and accessed independently.
+
+I wired up the **RV32 Assembler** and the **RV32 CPU** using a single bash file so that if the user provides the directory of a RISC-V source code file (for example, `./source.s`) the RV32 Assembler assembles the source code to binary, then the assembled binary instructions are loaded into the I-cache of the RV32 CPU, and finally the RV32 CPU executes. The testbench of the RV32 CPU is designed to dump a waveform file (`waveform_cpu.vcd`) and a memory & register dump file (`memory_dump.txt`) to check the results of the execution and for debugging purposes. This one-liner terminal command for doing this is: `bash ./run_cpu.sh ./source.s`.
+
+
+
+## Phase 2 - Pipelined CPU
+**Sep 2025**
+
+The next step was to pipeline the CPU into 5 stages. This is to apply a form of parallelism to RV32 CPU. **RV32 Pipelined** is a 5-stage pipelined version of **RV32 CPU**. The five stages are:
+* **IF** (Instruction Fetch) -- An instruction is fetched from the I-cache according to the next PC (program counter) value
+* **ID** (Instruction Decode) -- Decoding the instruction and reading the register values involved in the execution of the instruction
+* **EX** (Execute) -- Using the ALU to do arithmetic with the values read from the registers (if needed)
+* **MEM** (Memory) -- Reading from / Writing to the D-cache
+* **WB** (Write-back) -- Writing a new value to a specific register (if needed)
+
+Pipelining can cause some problems such as data hazards and control hazards.
+**Data hazards** can occur when the leading instruction has not yet reached the WB stage and the following instruction requires that new value for execution at the EX stage. Data hazards can be easily resolved with **data forwarding**, by forwarding not-yet-written-back values from leading instructions to earlier stages to be used by following instructions.
+**Control hazards** occur due because of branches. If a branch is taken, the instruction that should be fetched at the IF stage is not necessarily the next instruction (instruction at `current PC + 4`). However, whether the branch should be taken or not is unknown at the IF stage, so we cannot be sure about which instruction to fetch next for each cycle.
+In phase 2, I dealt with control hazards by simply *'predicting'* that `PC+4` (the next line) is the next PC value and if that prediction turns out to be incorrect (due to branches), the falsely fetched instructions are flushed from the pipeline.
+
+
+## Phase 3 - Branch Prediction
+**Oct 2025**
+
+In a pipelined CPU, before an instruction retires, another instruction is fetched. Because the CPU needs to fetch the next instruction before knowing the result of a preceding branch, control hazards are inevitable in pipelined CPUs. In **Phase 2**, the 'next line' instruction was fetched every cycle and when it turns out that a preceding branch should be taken, the pipeline was flushed.
+
+<div class="gap"></div>
+
+For **PHASE 3**, a different strategy was adopted. A Branch Target Buffer (BTB) and a Branch History Table (BHT) were implemented. The BTB stores the destination addresses of branch instructions, while the BHT will record whether those branches were historically "Taken" or "Not Taken." While there are many varied methods for branch prediction, utilizing a BTB and BHT is one of the most straightforward and effective approaches to implement. It is worth noting that in the outcome of a branch instruction is often highly correlated with its past behavior. This historical pattern is precisely why branch prediction is so effective in improving processor performance.
+
+
+
+
+
+## Phase 3.1 - Verification
+In hardware development, **verification** is just as important as the design itself.
+
+<div class="gap"></div>
+
+
+Previously, the CPU's functionality was manually verified by checking register file values, memory dumps, and dumped waveforms. However, moving forward, an automated verification method is necessary. One way to ensure a CPU is designed correctly is to confirm that all instructions are "retired" in program order. This can be verified indirectly by checking whether the architectural state (the register and memory values visible to the programmer) updates according to the program order. For instance, even modern out-of-order CPUs—which execute instructions non-sequentially—are designed so that memory and register values are ultimately updated in the exact order specified by the program.
+
+<div class="gap"></div>
+
+In **PHASE 1**, I built a single-cycle CPU, which is much simpler than the current pipeline. Assuming that this single-cycle CPU is functioning perfectly, I used it as a golden model. I then verified the pipelined CPU developed through **PHASE 3** by checking if its architectural state updates correctly and matches the state of the single-cycle golden model in the same sequence. I have created a simple program to verify whether the system's architectural state retires in program order. Since the full description is quite long, I gave it a concise name for fun:
+
+**“VAPOR”** (**V**erification of **A**rchitectural state’s **P**rogram-**O**rder **R**etirement)
+
+
+## Phase 4 - Cache System
+**Nov 2025**
+
+<img src="/assets/images/rivrse/memorysystem.png" title="Cache-Memory System"/>
+
+In **PHASE 4**, the data memory module was replaced with a single-level cache system, with the following specifications.
+* 2-way set-associative single-level (L1) cache
+* LRU (least recently used) replacement policy
+* Write-back, Write-allocate policy (Write to main memory on eviction)
+* Access main-memory during a cache miss
+* Simulate main-memory access with Verilog's assignment delay
+
+In **PHASE 4**, the 4 KiB data memory used in previous phases was replaced with a smaller 0.5 KiB cache. The 4 KiB main memory will be moved outside the CPU.
+
+While reads and writes to the cache will still occur within a single clock cycle, a cache miss will require fetching a block from main memory. To handle this, I implemented a handshake protocol between the cache controller and main memory as follows:
+- **Request**: The cache controller sends a read request along with the target address to the main memory.
+- **Acknowledgment**: The memory acknowledges the request, issues a response signal, and transmits the requested data to the cache.
+- **Completion**: The cache detects the memory’s response and receives the incoming data.
+
+This design ensures reliable data synchronization between the high-speed cache and the slower external main memory.
+
+
+## Phase 4.1 - StageView
+
+For better verification, I also developed a C++ program called **STAGEVIEW**.
+
+This CUI (Console User Interface) application provides a visual and color-coded representation of the microarchitecture’s status. It tracks which instruction is in each pipeline stage—IF, ID, EX, MEM, or WB—at any given cycle. To make navigation intuitive, users can use the arrow keys to scroll through the execution timeline.
+
+
+<!-- 
+`YEAR-MONTH-DAY-title.MARKUP`
+
+Where `YEAR` is a four-digit number, `MONTH` and `DAY` are both two-digit numbers, and `MARKUP` is the file extension representing the format used in the file. After that, include the necessary front matter. Take a look at the source for this post to get an idea about how it works.
+
+Jekyll also offers powerful support for code snippets: -->
+
+
+<!-- 
+{% highlight ruby %}
+def print_hi(name)
+  puts "Hi, #{name}"
+end
+print_hi('Tom')
+#=> prints 'Hi, Tom' to STDOUT.
+{% endhighlight %}
+
+$$ x = {-b \pm \sqrt{b^2-4ac} \over 2a} $$ -->
